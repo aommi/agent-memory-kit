@@ -322,7 +322,7 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
 | Agent stops proposing updates | Context pressure suppressing hook | "Inspect diff since last memory check and propose updates" |
 | Agent asks same question across sessions | Assumptions not logged | Check `dev/[task]/context.md` Assumptions section |
 | Claude Code hooks not firing | `settings.json` missing or `stop.sh` not executable | `chmod +x hooks/stop.sh`; verify `.claude/settings.json` |
-| Generated files missing architecture section | `ARCHITECTURE_VISION.md` (or configured arch file) not found | Create it, or the adapter falls back to `.agent/templates/architecture.md` |
+| Generated files missing architecture section | `ARCHITECTURE_VISION.md` (or configured arch file) not found | Create it at the path specified in `project.yaml` |
 
 ---
 
