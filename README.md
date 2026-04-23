@@ -59,43 +59,17 @@ cp -r ~/projects/applycling/.agent/memory-kit .agent-memory-kit
 cp -r ~/projects/applycling/.agent/memory-kit .agent/
 ```
 
-### Step 2: Create project.yaml
+### Step 2: Scaffold project config
+
+Run the interactive init command — it creates `.agent/project.yaml` and seeds `memory/semantic.md` + `memory/working.md`:
 
 ```bash
-cat > .agent/project.yaml << 'EOF'
-project:
-  name: my-new-project
-  description: A web service that does X. Supports Y and Z.
-  llm_providers:
-    - openai
-    - anthropic
-
-architecture:
-  file: ARCHITECTURE.md
-
-conventions:
-  - "Use pytest for all tests"
-  - "API keys live in .env"
-
-skills:
-  enabled: false
-
-agents:
-  claude_code:
-    enabled: true
-    hooks:
-      preprompt: true
-      stop: true
-  hermes:
-    enabled: true
-  openclaw:
-    enabled: true
-  codex:
-    enabled: true
-  antigravity:
-    enabled: true
-EOF
+python .agent/memory-kit/generate.py init
 ```
+
+You'll be prompted for project name, description, architecture file path, and which agents to enable. Sensible defaults are provided for everything.
+
+If you prefer to write the YAML by hand, see `templates/ARCHITECTURE_EXAMPLE.md` for a full reference.
 
 ### Step 3: Create your architecture doc
 
@@ -147,10 +121,11 @@ python .agent/memory-kit/generate.py claude-code
 
 ### Step 5: Create runtime memory files
 
+If you used `generate.py init`, `memory/semantic.md` and `memory/working.md` were already created. Otherwise:
+
 ```bash
 mkdir -p memory dev
-# Seed with empty templates or copy from another repo
-touch DECISIONS.md
+touch memory/semantic.md memory/working.md DECISIONS.md
 ```
 
 ---
@@ -177,6 +152,19 @@ touch DECISIONS.md
 - Hooks not firing? Check `.claude/settings.json` exists and `hooks/stop.sh` is executable (`chmod +x`)
 - Agent forgetting context? Say "re-read semantic.md"
 - Agent skipping hook output in long sessions? Say "check the diff and propose memory updates"
+
+**Regenerating CLAUDE.md safely:**
+
+`CLAUDE.md` uses a sentinel-based update system. The adapter manages only the block between `<!-- amk:start -->` and `<!-- amk:end -->`. Anything you write outside that block (above or below) is never touched on regen.
+
+```bash
+python .agent/memory-kit/generate.py claude-code
+# → "CLAUDE.md (unchanged)"          if config hasn't changed
+# → "CLAUDE.md (amk section updated)" + diff  if it changed
+# → "CLAUDE.md (amk section appended)" if no sentinels found yet
+```
+
+The project header (title + description) is written once above the sentinel on first create and never regenerated — edit it freely.
 
 ---
 
@@ -322,6 +310,8 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
 | Agent stops proposing updates | Context pressure suppressing hook | "Inspect diff since last memory check and propose updates" |
 | Agent asks same question across sessions | Assumptions not logged | Check `dev/[task]/context.md` Assumptions section |
 | Claude Code hooks not firing | `settings.json` missing or `stop.sh` not executable | `chmod +x hooks/stop.sh`; verify `.claude/settings.json` |
+| Stop hook: `No such file or directory` | Hook paths are stale (absolute or relative) | Re-run `generate.py claude-code` — hook commands now use `$CLAUDE_PROJECT_DIR` which Claude Code resolves correctly regardless of cwd |
+| `CLAUDE.md` regen clobbered my content | File had no sentinel block | Content below `<!-- amk:start/end -->` is always preserved; content above was never managed — add a sentinel block and keep your additions outside it |
 | Generated files missing architecture section | `ARCHITECTURE_VISION.md` (or configured arch file) not found | Create it, or the adapter falls back to `.agent/templates/architecture.md` |
 
 ---
