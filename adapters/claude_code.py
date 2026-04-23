@@ -1,14 +1,14 @@
 """
 Claude Code Adapter — generates CLAUDE.md + .claude/settings.json hooks
 
-Reads project config to produce a project-specific entry-point file.
+CLAUDE.md structure:
+  [project header — written once on first create, never touched again]
 
-CLAUDE.md is managed via sentinel comments so user-added content outside
-the managed block is never clobbered on regeneration:
+  <!-- amk:start -->
+  [generic memory protocol — updated by amk on regen]
+  <!-- amk:end -->
 
-    <!-- amk:start -->
-    ...generated content...
-    <!-- amk:end -->
+  [anything the user adds below stays untouched]
 """
 import difflib
 import json
@@ -17,16 +17,35 @@ from pathlib import Path
 SENTINEL_START = "<!-- amk:start -->"
 SENTINEL_END = "<!-- amk:end -->"
 
+MANAGED_CONTENT = """\
+## Memory System (Session Startup + Hooks)
 
-def _write_managed_section(claude_md_path: Path, content: str) -> str:
+**On session start:** Read `memory/semantic.md` ONCE to load project context.
+
+**On every turn:** The preprompt hook (`hooks/preprompt.txt`) handles reading `memory/working.md`.
+
+**Task files:** Only load `/dev/[task]/*` files when actively working on that task.
+
+**MCP efficiency:** Before calling any MCP tool to retrieve information, first check if that information might exist in `memory/semantic.md` or `dev/[task]/context.md` — local files are cheaper than remote MCP queries.
+
+**Keep context minimal:** Do not speculatively load files "just in case".
+
+**Mid-session drift:** If reasoning becomes uncertain or inconsistent with prior context, re-read `memory/semantic.md` before continuing."""
+
+
+def _write_managed_section(claude_md_path: Path, header: str, content: str) -> str:
     """Insert or replace the amk-managed block in CLAUDE.md.
 
-    Returns a human-readable status line describing what changed.
+    On first create: writes header (outside sentinel) + managed block.
+    On re-run with sentinels present: replaces only the managed block.
+    On file exists but no sentinels: appends the managed block.
+
+    Returns a human-readable status line.
     """
     block = f"{SENTINEL_START}\n{content}\n{SENTINEL_END}\n"
 
     if not claude_md_path.exists():
-        claude_md_path.write_text(block)
+        claude_md_path.write_text(f"{header}\n\n{block}")
         return "  - CLAUDE.md (created)"
 
     existing = claude_md_path.read_text()
@@ -34,7 +53,6 @@ def _write_managed_section(claude_md_path: Path, content: str) -> str:
     end_idx = existing.find(SENTINEL_END)
 
     if start_idx == -1 or end_idx == -1:
-        # No sentinels yet — append to whatever the user already has
         sep = "\n" if existing.endswith("\n") else "\n\n"
         claude_md_path.write_text(existing + sep + block)
         return "  - CLAUDE.md (amk section appended — existing content preserved)"
@@ -56,8 +74,7 @@ def _write_managed_section(claude_md_path: Path, content: str) -> str:
             tofile="CLAUDE.md (after)",
         )
     )
-    diff_str = "".join(diff_lines)
-    return f"  - CLAUDE.md (amk section updated)\n{diff_str}"
+    return f"  - CLAUDE.md (amk section updated)\n{''.join(diff_lines)}"
 
 
 def generate(project_root: Path, config: dict) -> str:
@@ -102,59 +119,12 @@ def generate(project_root: Path, config: dict) -> str:
     existing.setdefault("hooks", {}).update(our_hooks)
     settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
-    # Build managed CLAUDE.md content
-    conventions = config.get("conventions", [])
-    conventions_md = "\n".join(f"- {c}" for c in conventions) if conventions else ""
+    # Project header — written once on first create, never regenerated
+    header = f"# {project['name']} — Developer Guide\n\n**{project['name']}** is {project['description']}"
 
-    skills = config.get("skills", {})
-    skills_md = ""
-    if skills.get("enabled"):
-        skills_md = f"""\
-
----
-
-## Skills architecture
-
-All LLM prompt templates live in `{skills.get("directory", "skills/")}<name>/SKILL.md`. There are no prompt strings in Python source files.
-
-Frontmatter is parsed with `pyyaml`. Template engine is plain `str.format` — no Jinja2, no exceptions.
-"""
-
-    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
-
-    managed_content = f"""\
-# {project["name"]} — Developer Guide
-
-**{project["name"]}** is {project["description"]}
-
----
-
-## Memory System (Session Startup + Hooks)
-
-**On session start:** Read `memory/semantic.md` ONCE to load project context.
-
-**On every turn:** The preprompt hook (`hooks/preprompt.txt`) handles reading `memory/working.md`.
-
-**Task files:** Only load `/dev/[task]/*` files when actively working on that task.
-
-**MCP efficiency:** Before calling any MCP tool to retrieve information, first check if that information might exist in `memory/semantic.md` or `dev/[task]/context.md` — local files are cheaper than remote MCP queries.
-
-**Keep context minimal:** Do not speculatively load files "just in case".
-
-**Mid-session drift:** If reasoning becomes uncertain or inconsistent with prior context, re-read `memory/semantic.md` before continuing.
-
----
-
-## Architecture vision
-
-Before implementing a feature, read `{arch_file}`. It is the canonical record of architectural principles, product direction, design-decision rationale, and known risks.{skills_md}
----
-
-## Key conventions
-
-{conventions_md}"""
-
-    claude_md_status = _write_managed_section(project_root / "CLAUDE.md", managed_content)
+    claude_md_status = _write_managed_section(
+        project_root / "CLAUDE.md", header, MANAGED_CONTENT
+    )
 
     return (
         "Claude Code configuration generated:\n"
