@@ -106,10 +106,10 @@ def generate(project_root: Path, config: dict) -> str:
 
     our_hooks = {
         "UserPromptSubmit": [
-            {"hooks": [{"type": "command", "command": 'cat "$(git rev-parse --show-toplevel)/hooks/preprompt.txt"'}]}
+            {"hooks": [{"type": "command", "command": 'cat "$CLAUDE_PROJECT_DIR/hooks/preprompt.txt"'}]}
         ],
         "Stop": [
-            {"hooks": [{"type": "command", "command": 'bash "$(git rev-parse --show-toplevel)/hooks/stop.sh"'}]}
+            {"hooks": [{"type": "command", "command": 'bash "$CLAUDE_PROJECT_DIR/hooks/stop.sh"'}]}
         ],
     }
 
