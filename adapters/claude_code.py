@@ -2,18 +2,66 @@
 Claude Code Adapter — generates CLAUDE.md + .claude/settings.json hooks
 
 Reads project config to produce a project-specific entry-point file.
+
+CLAUDE.md is managed via sentinel comments so user-added content outside
+the managed block is never clobbered on regeneration:
+
+    <!-- amk:start -->
+    ...generated content...
+    <!-- amk:end -->
 """
+import difflib
 import json
 from pathlib import Path
 
+SENTINEL_START = "<!-- amk:start -->"
+SENTINEL_END = "<!-- amk:end -->"
+
+
+def _write_managed_section(claude_md_path: Path, content: str) -> str:
+    """Insert or replace the amk-managed block in CLAUDE.md.
+
+    Returns a human-readable status line describing what changed.
+    """
+    block = f"{SENTINEL_START}\n{content}\n{SENTINEL_END}\n"
+
+    if not claude_md_path.exists():
+        claude_md_path.write_text(block)
+        return "  - CLAUDE.md (created)"
+
+    existing = claude_md_path.read_text()
+    start_idx = existing.find(SENTINEL_START)
+    end_idx = existing.find(SENTINEL_END)
+
+    if start_idx == -1 or end_idx == -1:
+        # No sentinels yet — append to whatever the user already has
+        sep = "\n" if existing.endswith("\n") else "\n\n"
+        claude_md_path.write_text(existing + sep + block)
+        return "  - CLAUDE.md (amk section appended — existing content preserved)"
+
+    old_block = existing[start_idx : end_idx + len(SENTINEL_END)]
+    new_block = block.rstrip("\n")
+
+    if old_block == new_block:
+        return "  - CLAUDE.md (unchanged)"
+
+    updated = existing[:start_idx] + block + existing[end_idx + len(SENTINEL_END) :].lstrip("\n")
+    claude_md_path.write_text(updated)
+
+    diff_lines = list(
+        difflib.unified_diff(
+            old_block.splitlines(keepends=True),
+            new_block.splitlines(keepends=True),
+            fromfile="CLAUDE.md (before)",
+            tofile="CLAUDE.md (after)",
+        )
+    )
+    diff_str = "".join(diff_lines)
+    return f"  - CLAUDE.md (amk section updated)\n{diff_str}"
+
 
 def generate(project_root: Path, config: dict) -> str:
-    """Generate Claude Code configuration.
-
-    Args:
-        project_root: Path to the target project
-        config: Project configuration dict from project.yaml
-    """
+    """Generate Claude Code configuration."""
     project = config["project"]
     mk_dir = project_root / ".agent" / "memory-kit"
     templates = mk_dir / "templates"
@@ -54,11 +102,10 @@ def generate(project_root: Path, config: dict) -> str:
     existing.setdefault("hooks", {}).update(our_hooks)
     settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
-    # Build conventions section
+    # Build managed CLAUDE.md content
     conventions = config.get("conventions", [])
     conventions_md = "\n".join(f"- {c}" for c in conventions) if conventions else ""
 
-    # Build skills section if enabled
     skills = config.get("skills", {})
     skills_md = ""
     if skills.get("enabled"):
@@ -75,7 +122,7 @@ Frontmatter is parsed with `pyyaml`. Template engine is plain `str.format` — n
 
     arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
 
-    claude_md = f"""\
+    managed_content = f"""\
 # {project["name"]} — Developer Guide
 
 **{project["name"]}** is {project["description"]}
@@ -105,14 +152,13 @@ Before implementing a feature, read `{arch_file}`. It is the canonical record of
 
 ## Key conventions
 
-{conventions_md}
-"""
+{conventions_md}"""
 
-    (project_root / "CLAUDE.md").write_text(claude_md)
+    claude_md_status = _write_managed_section(project_root / "CLAUDE.md", managed_content)
 
     return (
         "Claude Code configuration generated:\n"
-        "  - CLAUDE.md\n"
+        f"{claude_md_status}\n"
         "  - .claude/settings.json (hooks merged)\n"
         "  - hooks/preprompt.txt\n"
         "  - hooks/stop.sh"
