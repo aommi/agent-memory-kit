@@ -33,12 +33,13 @@ def generate(project_root: Path, config: dict) -> str:
     claude_dir.mkdir(exist_ok=True)
     settings_path = claude_dir / "settings.json"
 
+    hooks_abs = project_root / "hooks"
     our_hooks = {
         "UserPromptSubmit": [
-            {"hooks": [{"type": "command", "command": "cat hooks/preprompt.txt"}]}
+            {"hooks": [{"type": "command", "command": f"cat {hooks_abs}/preprompt.txt"}]}
         ],
         "Stop": [
-            {"hooks": [{"type": "command", "command": "bash hooks/stop.sh"}]}
+            {"hooks": [{"type": "command", "command": f"bash {hooks_abs}/stop.sh"}]}
         ],
     }
 
