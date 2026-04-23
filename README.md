@@ -168,60 +168,46 @@ The project header (title + description) is written once above the sentinel on f
 
 ---
 
-### Hermes (MEDIUM confidence — instruction-driven)
+### Hermes (MEDIUM confidence — best effort, no hook mechanism)
 
 **Files:** `AGENTS.md`
 
 **How it works:**
 - Hermes reads `AGENTS.md` at project root as workspace context
-- No hooks. The per-turn instructions are embedded in `AGENTS.md` as static text
+- No hooks. Per-turn instructions are embedded as static text — relies on LLM instruction-following to reload context
 - Hermes also has native `MEMORY.md` / `USER.md` persistence
+
+**Limitation:** Medium confidence is a platform constraint, not an implementation bug. Hermes exposes no hook extension points, so context drift in long sessions cannot be solved by better prompting — it's an architecture gap in the agent itself.
 
 **Your workflow:**
 1. Open Hermes in the repo
 2. Agent reads `AGENTS.md` at session start
-3. Because there are no hooks, you must manually prompt: "Read memory/working.md before answering"
+3. Manually prompt before each task: "Read memory/working.md before answering"
 4. After significant changes, prompt: "Inspect the diff and propose memory updates"
 
 **Synergy with Hermes native memory:**
 ```bash
 ln -s memory/semantic.md MEMORY.md
 ```
-This mirrors your file-based memory into Hermes's built-in persistence. `memory/semantic.md` remains the source of truth.
+This mirrors your file-based memory into Hermes's built-in persistence. `memory/semantic.md` remains the source of truth. Note: if Hermes only loads `MEMORY.md` at session start, updates made mid-session by other agents won't be visible until the next session.
 
 ---
 
-### OpenClaw (MEDIUM-HIGH confidence — system prompt)
-
-**Files:** `.openclaw-system.md`
-
-**How it works:**
-- `.openclaw-system.md` is injected into the system prompt on every turn
-- Stronger than Hermes/Codex because it lives in the system context, not just an entry-point file
-- No post-response hooks
-
-**Your workflow:**
-1. Configure OpenClaw to use `.openclaw-system.md` as `system_prompt_file`
-2. The memory rules are present on every response
-3. After significant changes, manually prompt: "Propose memory updates"
-
----
-
-### Codex (LOW-MEDIUM confidence — instruction-driven)
+### Codex (LOW-MEDIUM confidence — best effort, no hook mechanism)
 
 **Files:** `AGENTS.md` (Hermes version overwrites this if you run `all`)
 
 **How it works:**
-- Same as Hermes but without the `agentskills.io` note
-- Codex's `AGENTS.md` support is less documented and evolves rapidly
-- No hooks
+- Same structure as Hermes but without the `agentskills.io` note
+- No hooks — same platform-level limitation as Hermes
+- Codex's `AGENTS.md` behaviour evolves rapidly and is less documented
 
 **Your workflow:**
-- Same as Hermes, but less reliable. If Codex drifts, explicitly say: "Read memory/semantic.md and memory/working.md"
+- Same as Hermes. If Codex drifts, explicitly say: "Read memory/semantic.md and memory/working.md"
 
 ---
 
-### Antigravity (MEDIUM-HIGH confidence — Rules + Workflows)
+### Antigravity (HIGH confidence — Rules enforced, Workflows manual)
 
 **Files:** `.agents/rules/memory-system.md`, `.agents/rules/project-context.md`, `.agents/workflows/memory-update.md`, `.agents/workflows/task-switch.md`
 
@@ -237,7 +223,7 @@ This mirrors your file-based memory into Hermes's built-in persistence. `memory/
 3. Work normally. After significant changes, invoke `/memory-update`
 4. To switch tasks mid-session, invoke `/task-switch`
 
-**Note:** Because Antigravity rules are limited to 12,000 characters each, large architecture docs are split across `memory-system.md` (protocol) and `project-context.md` (architecture).
+**Note:** Rules are limited to 12,000 characters each (verified against official docs). Activation mode (Always On / Manual / Glob) is set in the UI only — it cannot be set in the file itself. The one-time UI step is unavoidable.
 
 ---
 
