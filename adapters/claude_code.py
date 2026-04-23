@@ -58,7 +58,7 @@ def _write_managed_section(claude_md_path: Path, header: str, content: str) -> s
     start_idx = existing.find(SENTINEL_START)
     end_idx = existing.find(SENTINEL_END)
 
-    if start_idx == -1 or end_idx == -1:
+    if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
         sep = "\n" if existing.endswith("\n") else "\n\n"
         claude_md_path.write_text(existing + sep + block)
         return "  - CLAUDE.md (amk section appended — existing content preserved)"
@@ -104,13 +104,12 @@ def generate(project_root: Path, config: dict) -> str:
     claude_dir.mkdir(exist_ok=True)
     settings_path = claude_dir / "settings.json"
 
-    hooks_abs = project_root / "hooks"
     our_hooks = {
         "UserPromptSubmit": [
-            {"hooks": [{"type": "command", "command": f"cat {hooks_abs}/preprompt.txt"}]}
+            {"hooks": [{"type": "command", "command": 'cat "$(git rev-parse --show-toplevel)/hooks/preprompt.txt"'}]}
         ],
         "Stop": [
-            {"hooks": [{"type": "command", "command": f"bash {hooks_abs}/stop.sh"}]}
+            {"hooks": [{"type": "command", "command": 'bash "$(git rev-parse --show-toplevel)/hooks/stop.sh"'}]}
         ],
     }
 
