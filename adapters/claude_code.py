@@ -17,7 +17,7 @@ from pathlib import Path
 SENTINEL_START = "<!-- amk:start -->"
 SENTINEL_END = "<!-- amk:end -->"
 
-MANAGED_CONTENT = """\
+MANAGED_CONTENT_TEMPLATE = """\
 ## Memory System (Session Startup + Hooks)
 
 **On session start:** Read `memory/semantic.md` ONCE to load project context.
@@ -30,7 +30,13 @@ MANAGED_CONTENT = """\
 
 **Keep context minimal:** Do not speculatively load files "just in case".
 
-**Mid-session drift:** If reasoning becomes uncertain or inconsistent with prior context, re-read `memory/semantic.md` before continuing."""
+**Mid-session drift:** If reasoning becomes uncertain or inconsistent with prior context, re-read `memory/semantic.md` before continuing.
+
+---
+
+## Architecture vision
+
+Before implementing a feature, read `{arch_file}`. It is the canonical record of architectural principles, product direction, design-decision rationale, and known risks."""
 
 
 def _write_managed_section(claude_md_path: Path, header: str, content: str) -> str:
@@ -119,11 +125,14 @@ def generate(project_root: Path, config: dict) -> str:
     existing.setdefault("hooks", {}).update(our_hooks)
     settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
+    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
+    managed_content = MANAGED_CONTENT_TEMPLATE.format(arch_file=arch_file)
+
     # Project header — written once on first create, never regenerated
     header = f"# {project['name']} — Developer Guide\n\n**{project['name']}** is {project['description']}"
 
     claude_md_status = _write_managed_section(
-        project_root / "CLAUDE.md", header, MANAGED_CONTENT
+        project_root / "CLAUDE.md", header, managed_content
     )
 
     return (
