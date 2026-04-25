@@ -148,6 +148,45 @@ touch memory/semantic.md memory/working.md DECISIONS.md
 4. Agent asks about intent if unclear, then proposes `semantic.md` / `DECISIONS.md` updates
 5. Approve or correct. `working.md` updates automatically
 
+#### Memory capture levels (`memory.capture_at`)
+
+Controls when the Claude Code stop hook fires. Set this in `.agent/project.yaml`:
+
+```yaml
+memory:
+  capture_at:
+    - response   # every response with tracked changes (default, current behavior)
+    - commit     # when a non-merge commit is detected since last hook run
+    - merge      # when a merge commit is detected since last hook run
+```
+
+| Level | Fires when | Default |
+|---|---|---|
+| `response` | Tracked changes relative to HEAD exist after a response | Yes |
+| `commit` | A non-merge commit appears in the range since the last hook run | No |
+| `merge` | A merge commit (2+ parents) appears in the range since the last hook run | Yes |
+
+If `memory.capture_at` is missing, the adapter uses the backward-compatible default: `response` and `merge`.
+
+How commit/merge detection works: the hook caches HEAD in `.agent/.last_checked_commit` after each run. On the next run, it scans all commits in the `PREV_HEAD..CURRENT_HEAD` range and classifies each by parent count. If `PREV_HEAD` is no longer an ancestor because of a rebase/reset, the hook inspects current HEAD instead.
+
+GitHub merge styles:
+- "Create a merge commit" → caught by `merge`
+- "Squash and merge" / "Rebase and merge" → single-parent commits, caught by `commit`
+- Enable both `commit` and `merge` if your repos use mixed merge styles.
+
+`capture_at: []` is valid and generates a warning-only hook instead of silently doing nothing.
+
+`.agent/.last_checked_commit` is runtime state and is gitignored automatically by `init` and by `generate.py claude-code`.
+
+**Updating existing repos that already use this system:**
+
+1. Update the vendored kit files in that repo's `.agent/memory-kit/` from this version.
+2. Add your desired `memory.capture_at` to `.agent/project.yaml`, or omit it to use the default `response + merge` behavior.
+3. Re-run only the generated agent config, e.g. `python .agent/memory-kit/generate.py claude-code` or `python .agent/memory-kit/generate.py all`.
+4. Existing memory content is preserved. `memory/semantic.md`, `memory/working.md`, and `DECISIONS.md` are not overwritten by generation. `CLAUDE.md` is sentinel-managed: only the block between `<!-- amk:start -->` and `<!-- amk:end -->` is updated; custom content outside that block remains intact.
+5. Check `git diff` before committing if you want to verify exactly what changed.
+
 **If something breaks:**
 - Hooks not firing? Check `.claude/settings.json` exists and `hooks/stop.sh` is executable (`chmod +x`)
 - Agent forgetting context? Say "re-read semantic.md"
