@@ -96,7 +96,8 @@ def _normalize_capture_at(config: dict) -> list[str]:
     Missing/null capture_at uses the backward-compatible default. An explicit
     empty list is valid and generates a warning-only hook.
     """
-    raw = config.get("memory", {}).get("capture_at", DEFAULT_CAPTURE_LEVELS)
+    memory = config.get("memory") or {}
+    raw = memory.get("capture_at", DEFAULT_CAPTURE_LEVELS)
 
     if raw is None:
         return list(DEFAULT_CAPTURE_LEVELS)
@@ -191,7 +192,9 @@ def _build_stop_sh(capture_at: list[str]) -> str:
             "  fi",
             "",
             '  for C in $RANGE_COMMITS; do',
-            '    PARENTS="$(git -C "$REPO_ROOT" cat-file -p "$C" 2>/dev/null | grep -c "^parent " || true)"',
+            '    # rev-list --parents outputs: <sha> <p1> [<p2> ...]; wc -w - 1 = parent count',
+            '    WORDS="$(git -C "$REPO_ROOT" rev-list --parents -n 1 "$C" 2>/dev/null | wc -w)"',
+            '    PARENTS=$((WORDS - 1))',
             '    if [ "$PARENTS" -ge 2 ]; then HAS_MERGE=true; else HAS_COMMIT=true; fi',
             "  done",
         ]
