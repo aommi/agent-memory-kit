@@ -9,7 +9,8 @@ def ensure_gitignored(project_root: Path, entry: str) -> None:
         content = gitignore_path.read_text()
         if entry in content.splitlines():
             return
-        sep = "\n" if content.endswith("\n") else "\n\n"
-        gitignore_path.write_text(content + sep + entry + "\n")
+        if not content.endswith("\n"):
+            content += "\n"
+        gitignore_path.write_text(content + entry + "\n")
     else:
         gitignore_path.write_text(entry + "\n")

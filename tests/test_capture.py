@@ -1,11 +1,13 @@
 """Tests for configurable Claude Code memory capture levels."""
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adapters.claude_code import _build_stop_sh, _normalize_capture_at
+from adapters.utils import ensure_gitignored
 
 
 def test_normalize_default_when_memory_missing():
@@ -100,3 +102,63 @@ def test_build_all_levels_includes_response_and_range_logic():
 def test_build_header_reflects_enabled_levels():
     script = _build_stop_sh(["response", "merge"])
     assert "capture levels: response, merge" in script
+
+
+def test_build_uses_revlist_parents_not_grep():
+    # grep -c exits 1 on zero matches; rev-list --parents | wc -w is safe under set -e
+    script = _build_stop_sh(["commit", "merge"])
+    assert "grep -c" not in script
+    assert "rev-list --parents" in script
+    assert "wc -w" in script
+
+
+# --- ensure_gitignored ---
+
+
+def test_gitignore_creates_file_when_missing():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        ensure_gitignored(root, ".agent/.last_checked_commit")
+        content = (root / ".gitignore").read_text()
+        assert content == ".agent/.last_checked_commit\n"
+
+
+def test_gitignore_appends_to_existing_file_with_trailing_newline():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / ".gitignore").write_text("*.pyc\n")
+        ensure_gitignored(root, ".agent/.last_checked_commit")
+        content = (root / ".gitignore").read_text()
+        assert content == "*.pyc\n.agent/.last_checked_commit\n"
+
+
+def test_gitignore_appends_to_file_without_trailing_newline():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / ".gitignore").write_text("*.pyc")
+        ensure_gitignored(root, ".agent/.last_checked_commit")
+        content = (root / ".gitignore").read_text()
+        assert content == "*.pyc\n.agent/.last_checked_commit\n"
+
+
+def test_gitignore_skips_when_entry_already_present():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        original = "*.pyc\n.agent/.last_checked_commit\n"
+        (root / ".gitignore").write_text(original)
+        ensure_gitignored(root, ".agent/.last_checked_commit")
+        assert (root / ".gitignore").read_text() == original
+
+
+def test_gitignore_no_spurious_blank_lines():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / ".gitignore").write_text("*.pyc\n")
+        ensure_gitignored(root, ".agent/.last_checked_commit")
+        content = (root / ".gitignore").read_text()
+        assert "\n\n" not in content  # no blank lines inserted
+
+
+def test_normalize_memory_key_is_null():
+    # YAML `memory:` with no children → config["memory"] is None → must not crash
+    assert _normalize_capture_at({"memory": None}) == ["response", "merge"]
