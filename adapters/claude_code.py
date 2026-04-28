@@ -35,7 +35,7 @@ MANAGED_CONTENT_TEMPLATE = """\
 
 **Mid-session drift:** If reasoning becomes uncertain or inconsistent with prior context, re-read `memory/semantic.md` before continuing.
 
-**When a PR merges:** In addition to `semantic.md` and `DECISIONS.md`, check `{arch_file}` — mark any shipped capabilities as built in the Vision section and update Assumptions if the merge invalidates one. Planning details (tickets, checklists, phases) stay in planning docs, never in `{arch_file}`.
+**When a PR merges:** In addition to `semantic.md` and `DECISIONS.md`, check `{arch_file}` — move shipped capabilities to `memory/semantic.md` and remove them from the Vision section; append a supersession to `DECISIONS.md` then update or remove any invalidated Assumption. Planning details (tickets, checklists, phases) stay in planning docs, never in `{arch_file}`.
 
 ---
 
@@ -217,8 +217,8 @@ def _build_stop_sh(capture_at: list[str], arch_file: str = "") -> str:
             ]
             if arch_file:
                 merge_lines.append(
-                    f'    echo "- Also check {arch_file}: mark shipped capabilities as built,'
-                    " update Assumptions if any were invalidated\""
+                    f'    echo "- Also check {arch_file}: move shipped capabilities to semantic.md'
+                    " and remove from Vision section; update Assumptions if any were invalidated\""
                 )
             merge_lines += [
                 "    emit_memory_reminder",
@@ -255,7 +255,7 @@ def generate(project_root: Path, config: dict) -> str:
     # Write hooks/stop.sh and make executable
     stop_path = hooks_dir / "stop.sh"
     capture_at = _normalize_capture_at(config)
-    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
+    arch_file = config.get("architecture", {}).get("file", "vision.md")
     stop_path.write_text(_build_stop_sh(capture_at, arch_file=arch_file))
     stop_path.chmod(0o755)
     ensure_gitignored(project_root, ".agent/.last_checked_commit")
@@ -285,7 +285,7 @@ def generate(project_root: Path, config: dict) -> str:
     existing.setdefault("hooks", {}).update(our_hooks)
     settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
-    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
+    arch_file = config.get("architecture", {}).get("file", "vision.md")
     managed_content = MANAGED_CONTENT_TEMPLATE.format(arch_file=arch_file)
 
     # Project header — written once on first create, never regenerated
