@@ -255,7 +255,7 @@ def generate(project_root: Path, config: dict) -> str:
     # Write hooks/stop.sh and make executable
     stop_path = hooks_dir / "stop.sh"
     capture_at = _normalize_capture_at(config)
-    arch_file = config.get("architecture", {}).get("file", "vision.md")
+    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
     stop_path.write_text(_build_stop_sh(capture_at, arch_file=arch_file))
     stop_path.chmod(0o755)
     ensure_gitignored(project_root, ".agent/.last_checked_commit")
@@ -285,7 +285,7 @@ def generate(project_root: Path, config: dict) -> str:
     existing.setdefault("hooks", {}).update(our_hooks)
     settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
-    arch_file = config.get("architecture", {}).get("file", "vision.md")
+    arch_file = config.get("architecture", {}).get("file", "ARCHITECTURE_VISION.md")
     managed_content = MANAGED_CONTENT_TEMPLATE.format(arch_file=arch_file)
 
     # Project header — written once on first create, never regenerated
