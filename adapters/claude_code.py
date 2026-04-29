@@ -74,7 +74,7 @@ def _write_managed_section(claude_md_path: Path, header: str, content: str) -> s
     if old_block == new_block:
         return "  - CLAUDE.md (unchanged)"
 
-    updated = existing[:start_idx] + block + existing[end_idx + len(SENTINEL_END) :].lstrip("\n")
+    updated = existing[:start_idx] + block + existing[end_idx + len(SENTINEL_END) :]
     claude_md_path.write_text(updated)
 
     diff_lines = list(
@@ -134,7 +134,7 @@ def _normalize_capture_at(config: dict) -> list[str]:
     return result
 
 
-def _build_stop_sh(capture_at: list[str], arch_file: str = "") -> str:
+def _build_stop_sh(capture_at: list[str]) -> str:
     """Generate stop.sh content based on normalized capture levels."""
     if not capture_at:
         return textwrap.dedent(
@@ -210,21 +210,13 @@ def _build_stop_sh(capture_at: list[str], arch_file: str = "") -> str:
             ]
 
         if "merge" in capture_at:
-            merge_lines = [
+            lines += [
                 "",
                 '  if [ "$HAS_MERGE" = "true" ]; then',
                 '    echo "Merge commit detected — review architectural impact:"',
-            ]
-            if arch_file:
-                merge_lines.append(
-                    f'    echo "- Also check {arch_file}: move shipped capabilities to semantic.md'
-                    " and remove from Vision section; update Assumptions if any were invalidated\""
-                )
-            merge_lines += [
                 "    emit_memory_reminder",
                 "  fi",
             ]
-            lines += merge_lines
 
         lines += ["fi"]
 
@@ -255,8 +247,7 @@ def generate(project_root: Path, config: dict) -> str:
     # Write hooks/stop.sh and make executable
     stop_path = hooks_dir / "stop.sh"
     capture_at = _normalize_capture_at(config)
-    arch_file = config.get("architecture", {}).get("file", "vision.md")
-    stop_path.write_text(_build_stop_sh(capture_at, arch_file=arch_file))
+    stop_path.write_text(_build_stop_sh(capture_at))
     stop_path.chmod(0o755)
     ensure_gitignored(project_root, ".agent/.last_checked_commit")
 
