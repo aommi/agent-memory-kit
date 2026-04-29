@@ -215,6 +215,7 @@ The project header (title + description) is written once above the sentinel on f
 - Hermes reads `AGENTS.md` at project root as workspace context
 - No hooks. Per-turn instructions are embedded as static text — relies on LLM instruction-following to reload context
 - Hermes also has native `MEMORY.md` / `USER.md` persistence
+- **Sentinel preservation:** The adapter uses `<!-- amk:start -->` / `<!-- amk:end -->` blocks. Only the managed section (memory protocol, architecture ref, conventions, memory mirroring footer) is updated on regeneration. Custom content outside those blocks — Hermes profile details, two-layer LLM notes, PM skills sections — is always preserved.
 
 **Limitation:** Medium confidence is a platform constraint, not an implementation bug. Hermes exposes no hook extension points, so context drift in long sessions cannot be solved by better prompting — it's an architecture gap in the agent itself.
 
@@ -240,6 +241,7 @@ This mirrors your file-based memory into Hermes's built-in persistence. `memory/
 - Same structure as Hermes but without the `agentskills.io` note
 - No hooks — same platform-level limitation as Hermes
 - Codex's `AGENTS.md` behaviour evolves rapidly and is less documented
+- **Sentinel preservation:** Same `<!-- amk:start/end -->` pattern as Hermes. Custom content outside the managed block is preserved. Codex strips superset parts (skills note, memory mirroring) from the managed block; running Hermes restores them.
 
 **Your workflow:**
 - Same as Hermes. If Codex drifts, explicitly say: "Read memory/semantic.md and memory/working.md"
@@ -336,7 +338,7 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
 | Agent asks same question across sessions | Assumptions not logged | Check `dev/[task]/context.md` Assumptions section |
 | Claude Code hooks not firing | `settings.json` missing or `stop.sh` not executable | `chmod +x hooks/stop.sh`; verify `.claude/settings.json` |
 | Stop hook: `No such file or directory` | Hook paths are stale (absolute or relative) | Re-run `generate.py claude-code` — hook commands now use `$CLAUDE_PROJECT_DIR` which Claude Code resolves correctly regardless of cwd |
-| `CLAUDE.md` regen clobbered my content | File had no sentinel block | Content below `<!-- amk:start/end -->` is always preserved; content above was never managed — add a sentinel block and keep your additions outside it |
+| `CLAUDE.md` or `AGENTS.md` regen clobbered my content | File had no sentinel block | Content outside `<!-- amk:start/end -->` is always preserved. If your custom content was between the sentinels (inside the managed block), move it outside. If the file had no sentinels at all, the first regeneration appends the managed block — move your custom content below `<!-- amk:end -->` after that. |
 | Generated files missing architecture section | `vision.md` (or configured arch file) not found | Create it, or the adapter falls back to `.agent/templates/architecture.md` |
 
 ---
