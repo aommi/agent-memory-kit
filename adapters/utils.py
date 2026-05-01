@@ -105,7 +105,7 @@ def check_managed_section(
     Returns a unified diff string on mismatch.
     """
     if not file_path.exists():
-        return None  # File doesn't exist yet — not a drift
+        return f"{label}: file does not exist (not yet generated)"
 
     existing = file_path.read_text()
     start_idx = existing.find(SENTINEL_START)
@@ -145,7 +145,7 @@ def check_fully_generated(
     Returns a unified diff string on mismatch.
     """
     if not file_path.exists():
-        return None
+        return f"{label}: file does not exist (not yet generated)"
 
     actual = file_path.read_text()
     if actual == expected_content:

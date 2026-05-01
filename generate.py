@@ -408,6 +408,11 @@ def _run_check(project_root: Path, config: dict, enabled_agents: list[str]) -> i
     drift_count = 0
     print(f"Checking for drift: {', '.join(enabled_agents)}\n")
 
+    # When both codex and hermes are enabled, hermes supersedes codex
+    # (both write AGENTS.md). Skip codex's check to avoid false drift.
+    if "codex" in enabled_agents and "hermes" in enabled_agents:
+        enabled_agents = [a for a in enabled_agents if a != "codex"]
+
     for name in enabled_agents:
         # Load the adapter module and call its check() function
         adapter_name = name.replace("-", "_")
@@ -449,9 +454,6 @@ def main():
     config = load_config(project_root)
 
     if agent_name == "all":
-        # Bootstrap working memory from template if missing (e.g. fresh clone)
-        _bootstrap_working_md(project_root)
-
         enabled_agents = get_enabled_agents(config, force_all)
         if not enabled_agents:
             print(
@@ -462,6 +464,9 @@ def main():
 
         if check_mode:
             sys.exit(_run_check(project_root, config, enabled_agents))
+
+        # Bootstrap working memory from template if missing (e.g. fresh clone)
+        _bootstrap_working_md(project_root)
 
         state = load_state(project_root)
         mode = "ALL agents (--force)" if force_all else "enabled agents only"

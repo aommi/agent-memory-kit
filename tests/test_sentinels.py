@@ -134,12 +134,13 @@ def test_check_managed_reports_missing_sentinels():
         assert "no managed block" in result
 
 
-def test_check_managed_returns_none_when_file_missing():
-    """File doesn't exist yet: no drift (not an error, just hasn't been generated)."""
+def test_check_managed_returns_drift_when_file_missing():
+    """File doesn't exist: reports as drift (not yet generated)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         path = Path(tmpdir) / "nonexistent.md"
         result = check_managed_section(path, "content", "nonexistent.md")
-        assert result is None
+        assert result is not None
+        assert "does not exist" in result
 
 
 # ── check_fully_generated ────────────────────────────────────────────────────
@@ -161,11 +162,12 @@ def test_check_fully_generated_detects_drift():
         assert result is not None
 
 
-def test_check_fully_generated_returns_none_when_file_missing():
+def test_check_fully_generated_returns_drift_when_file_missing():
     with tempfile.TemporaryDirectory() as tmpdir:
         path = Path(tmpdir) / "nonexistent.md"
         result = check_fully_generated(path, "content", "nonexistent.md")
-        assert result is None
+        assert result is not None
+        assert "does not exist" in result
 
 
 # ── Banner presence ──────────────────────────────────────────────────────────
