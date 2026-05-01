@@ -61,7 +61,7 @@ cp -r ~/projects/applycling/.agent/memory-kit .agent/
 
 ### Step 2: Scaffold project config
 
-Run the interactive init command — it creates `.agent/project.yaml` and seeds `memory/semantic.md` + `memory/working.md`:
+Run the interactive init command — it creates `.agent/project.yaml`, seeds `memory/semantic.md`, creates `memory/working.example.md` (a tracked template), and bootstraps `memory/working.md` (local, gitignored) from it:
 
 ```bash
 python .agent/memory-kit/generate.py init
@@ -121,11 +121,37 @@ python .agent/memory-kit/generate.py claude-code
 
 ### Step 5: Create runtime memory files
 
-If you used `generate.py init`, `memory/semantic.md` and `memory/working.md` were already created. Otherwise:
+If you used `generate.py init`, everything is already in place. `memory/working.md` was bootstrapped from the tracked template and is gitignored automatically.
+
+If setting up manually (without `init`):
 
 ```bash
 mkdir -p memory dev
-touch memory/semantic.md memory/working.md DECISIONS.md
+touch memory/semantic.md DECISIONS.md
+# Create the tracked working memory template (working.md is bootstrapped from this)
+cat > memory/working.example.md << 'EOF'
+# Working Memory
+
+## Current Focus
+
+(none)
+
+## In Progress
+
+(none)
+
+## Blocked
+
+(none)
+
+## Next Steps
+
+(none)
+EOF
+# Add working.md to .gitignore — it's local session state
+echo "memory/working.md" >> .gitignore
+# Bootstrap working.md from the example
+cp memory/working.example.md memory/working.md
 ```
 
 ---
@@ -369,7 +395,8 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
 
 memory/
   semantic.md               # Distilled knowledge (≤500 lines)
-  working.md                # Current task (≤300 lines)
+  working.example.md         # Tracked template — commit this
+  working.md                 # Current task (≤300 lines) — gitignored, local only
 DECISIONS.md                # Append-only decisions log
 dev/                        # Active task folders
 ```
