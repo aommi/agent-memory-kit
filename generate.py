@@ -101,6 +101,25 @@ AGENT_OUTPUTS = {
 }
 
 
+def _bootstrap_working_md(project_root: Path) -> None:
+    """Create memory/working.md from memory/working.example.md if it exists.
+
+    Never overwrites an existing working.md. If the example file is missing
+    (e.g. a pre-existing project that hasn't adopted the template yet), falls
+    back to a minimal skeleton.
+    """
+    working_path = project_root / "memory" / "working.md"
+    if working_path.exists():
+        return  # never overwrite
+
+    example_path = project_root / "memory" / "working.example.md"
+    if example_path.exists():
+        working_path.write_text(example_path.read_text())
+    else:
+        working_path.parent.mkdir(parents=True, exist_ok=True)
+        working_path.write_text("# Working Memory\n\n")
+
+
 def cmd_init(project_root: Path) -> None:
     """Scaffold .agent/project.yaml and memory/ files interactively."""
     config_path = project_root / ".agent" / "project.yaml"
@@ -191,14 +210,39 @@ def cmd_init(project_root: Path) -> None:
     memory_dir = project_root / "memory"
     memory_dir.mkdir(exist_ok=True)
     created = []
-    for fname, heading in (("semantic.md", "Semantic Memory"), ("working.md", "Working Memory")):
-        fpath = memory_dir / fname
-        if not fpath.exists():
-            fpath.write_text(f"# {heading}\n\n")
-            created.append(f"memory/{fname}")
+
+    # semantic.md — canonical project memory (tracked)
+    semantic_path = memory_dir / "semantic.md"
+    if not semantic_path.exists():
+        semantic_path.write_text("# Semantic Memory\n\n")
+        created.append("memory/semantic.md")
+
+    # working.example.md — tracked template for local working memory
+    example_path = memory_dir / "working.example.md"
+    if not example_path.exists():
+        example_path.write_text(
+            "# Working Memory\n\n"
+            "## Current Focus\n\n"
+            "(none)\n\n"
+            "## In Progress\n\n"
+            "(none)\n\n"
+            "## Blocked\n\n"
+            "(none)\n\n"
+            "## Next Steps\n\n"
+            "(none)\n"
+        )
+        created.append("memory/working.example.md")
+
+    # working.md — local session state (gitignored), bootstrapped from example
+    working_path = memory_dir / "working.md"
+    if not working_path.exists():
+        _bootstrap_working_md(project_root)
+        created.append("memory/working.md")
+
     if created:
         print("Created: " + ", ".join(created))
 
+    ensure_gitignored(project_root, "memory/working.md")
     ensure_gitignored(project_root, ".agent/.last_checked_commit")
 
     print("\nNext steps:")
@@ -357,6 +401,9 @@ def main():
     config = load_config(project_root)
 
     if agent_name == "all":
+        # Bootstrap working memory from template if missing (e.g. fresh clone)
+        _bootstrap_working_md(project_root)
+
         enabled_agents = get_enabled_agents(config, force_all)
         if not enabled_agents:
             print(
