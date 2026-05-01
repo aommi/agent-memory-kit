@@ -303,7 +303,9 @@ def check(project_root: Path, config: dict) -> list[str]:
 
     # .claude/settings.json — verify required hooks match expected commands
     settings_path = project_root / ".claude" / "settings.json"
-    if settings_path.exists():
+    if not settings_path.exists():
+        diffs.append(".claude/settings.json: file does not exist (not yet generated)")
+    else:
         try:
             actual = json.loads(settings_path.read_text())
         except (json.JSONDecodeError, OSError):
