@@ -101,7 +101,9 @@ def _build_stop_sh(capture_at: list[str]) -> str:
             """\
             #!/bin/bash
             # stop.sh — no capture levels configured
-            # Edit memory.capture_at in .agent/project.yaml to enable.
+            """
+        ) + GENERATED_BANNER_SH + "\n" + textwrap.dedent(
+            """\
             set -euo pipefail
             echo "Warning: memory.capture_at is empty — no decision capture is configured."
             echo "Add response, commit, and/or merge to memory.capture_at in .agent/project.yaml."
@@ -299,8 +301,7 @@ def check(project_root: Path, config: dict) -> list[str]:
     if r:
         diffs.append(r)
 
-    # .claude/settings.json — fully generated/merged
-    # For check mode, we verify that our required hooks are present
+    # .claude/settings.json — verify required hooks match expected commands
     settings_path = project_root / ".claude" / "settings.json"
     if settings_path.exists():
         try:
@@ -308,8 +309,26 @@ def check(project_root: Path, config: dict) -> list[str]:
         except (json.JSONDecodeError, OSError):
             diffs.append(".claude/settings.json: invalid JSON")
             return diffs
-        hooks = actual.get("hooks", {})
-        if "UserPromptSubmit" not in hooks or "Stop" not in hooks:
-            diffs.append(".claude/settings.json: missing required hooks (UserPromptSubmit, Stop)")
+
+        expected_hooks = {
+            "UserPromptSubmit": [
+                {"hooks": [{"type": "command", "command": 'cat "$CLAUDE_PROJECT_DIR/hooks/preprompt.txt"'}]}
+            ],
+            "Stop": [
+                {"hooks": [{"type": "command", "command": 'bash "$CLAUDE_PROJECT_DIR/hooks/stop.sh"'}]}
+            ],
+        }
+        actual_hooks = actual.get("hooks", {})
+
+        for event, configs in expected_hooks.items():
+            if event not in actual_hooks:
+                diffs.append(f".claude/settings.json: missing required hook '{event}'")
+                continue
+            if actual_hooks[event] != configs:
+                diffs.append(
+                    f".claude/settings.json: hook '{event}' commands differ from expected\n"
+                    f"  expected: {configs}\n"
+                    f"  actual:   {actual_hooks[event]}"
+                )
 
     return diffs
