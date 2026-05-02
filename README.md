@@ -9,7 +9,7 @@ A file-based memory system for solo developers who switch between AI coding agen
 You work on multiple repos. You use multiple agents (Claude Code for deep work, Hermes for quick questions, OpenClaw for Telegram, etc.). Each session, you re-explain the same context. Token costs climb. Context drifts. Decisions get re-made.
 
 This kit gives you:
-- **One file structure** that lives in every repo (`memory/semantic.md`, `memory/working.md`, `DECISIONS.md`, `dev/[task]/`)
+- **One file structure** that lives in every repo (`memory/semantic.md`, `memory/working.example.md`, `DECISIONS.md`, `dev/[task]/`; `memory/working.md` is local session state)
 - **One generator** that produces the right entry-point file for each agent
 - **Hook-based enforcement** where supported (Claude Code), instruction-driven where not (everyone else)
 
@@ -35,8 +35,9 @@ This kit gives you:
 │                                                             │
 │  - .agent/project.yaml         (name, description, arch)    │
 │  - vision.md      (project-specific knowledge) │
-│  - memory/semantic.md          (runtime: distilled facts)   │
-│  - memory/working.md           (runtime: current task)      │
+│  - memory/semantic.md          (tracked: distilled facts)    │
+│  - memory/working.example.md   (tracked: template)           │
+│  - memory/working.md           (gitignored: current task)    │
 │  - DECISIONS.md                (runtime: decisions log)     │
 │  - dev/[task]/                 (runtime: active tasks)      │
 └─────────────────────────────────────────────────────────────┘
