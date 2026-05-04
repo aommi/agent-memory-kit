@@ -494,7 +494,7 @@ def main():
         if not enabled_agents:
             print(
                 "No agents enabled in .agent/project.yaml.\n"
-                "Enable some agents or run with --force to regenerate already-enabled agents that were skipped by re-run safety."
+                "Set enabled: true for at least one agent in the agents section."
             )
             sys.exit(0)
 
@@ -505,7 +505,7 @@ def main():
         _bootstrap_working_md(project_root)
 
         state = load_state(project_root)
-        mode = "ALL agents (--force)" if force_all else "enabled agents only"
+        mode = "enabled agents (--force)" if force_all else "enabled agents only"
         print(f"Checking configurations for {mode}: {', '.join(enabled_agents)}\n")
 
         generated_any = False
