@@ -310,7 +310,7 @@ def check(project_root: Path, config: dict) -> list[str]:
 
     # hooks/stop.sh — fully generated
     capture_at = _normalize_capture_at(config)
-    stop_expected = _build_stop_sh(capture_at)
+    stop_expected = _build_stop_sh(capture_at, config)
     r = check_fully_generated(
         project_root / "hooks" / "stop.sh",
         stop_expected,
