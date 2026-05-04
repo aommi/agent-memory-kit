@@ -120,6 +120,7 @@ def _build_stop_sh(capture_at: list[str]) -> str:
         '  echo "Memory check — inspect diff and propose updates if significant:"',
         '  echo "- working.md: update current state (no approval needed)"',
         '  echo "- semantic.md / DECISIONS.md: PROPOSE first, write only on approval"',
+        '  echo "- If anything in working.md has shipped, PROMOTE it to semantic.md and remove from working.md"',
         '  echo "- If intent unclear from diff, ask before proposing"',
         "}",
         "",

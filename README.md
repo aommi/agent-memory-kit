@@ -299,19 +299,45 @@ This mirrors your file-based memory into Hermes's built-in persistence. `memory/
 
 These are the same across all agents. This is what makes the system portable.
 
-| File | Purpose | Size limit | Who writes | Approval? |
-|---|---|---|---|---|
-| `memory/semantic.md` | Distilled project knowledge | ≤500 lines | Agent (proposed) | **Yes** |
-| `memory/working.md` | Live task state | ≤300 lines | Agent (auto) | No |
-| `DECISIONS.md` | Append-only decisions log | No limit | Agent (proposed) | **Yes** |
-| `dev/[task]/plan.md` | Task goal and approach | No limit | Agent | No |
-| `dev/[task]/context.md` | Constraints, assumptions | No limit | Agent | No |
-| `dev/[task]/tasks.md` | Progress checklist | No limit | Agent | No |
+### What each file is for (plain words)
+
+Mental model: **vision = future + axioms; DECISIONS = immutable past; semantic = current state; working = current focus; context = current task.**
+
+| File | What it is | When it changes | Lifespan |
+|---|---|---|---|
+| `vision.md` (or your `architecture.file`) | The "north star" — principles the project IS committed to, load-bearing assumptions, and capabilities planned but not yet built. **Not a current-state inventory.** | Only on PR merge, when a capability ships or an assumption is invalidated. | Permanent (with explicit supersessions). |
+| `memory/semantic.md` | The "what's built today" snapshot. Distilled facts about the current system: which modules exist, where things live, how the pieces fit. | After any change that alters how the system works. Entries get rewritten/replaced. | Long-lived but mutable. |
+| `memory/working.md` | The "what I'm doing right now" scratchpad. Current focus, in-progress bullets, half-decided things for *this* sprint/session. | Freely, after each response. Rewritten from scratch when focus shifts. | Ephemeral (days–weeks). |
+| `DECISIONS.md` | Append-only history of *why* we chose X on date Y. Never edited; to reverse, append a new entry that supersedes the old one. | When a real architectural choice is made. | Forever (audit trail). |
+| `dev/[task]/context.md` | Per-task scratchpad of *confirmed* facts/assumptions for one specific piece of work (e.g. one ticket). | Continuously while the task is active; archived when the task ends. | Lives with the task. |
+
+Operational details (who can write, size limits):
+
+| File | Size limit | Who writes | Approval? |
+|---|---|---|---|
+| `memory/semantic.md` | ≤500 lines | Agent (proposed) | **Yes** |
+| `memory/working.md` | ≤300 lines | Agent (auto) | No |
+| `DECISIONS.md` | No limit | Agent (proposed) | **Yes** |
+| `dev/[task]/plan.md` | No limit | Agent | No |
+| `dev/[task]/context.md` | No limit | Agent | No |
+| `dev/[task]/tasks.md` | No limit | Agent | No |
 
 **Approval flow:**
 - `semantic.md` and `DECISIONS.md` require your approval before writing
 - `working.md` updates freely
 - `dev/[task]/` files update freely
+- `vision.md` is merge-only (not part of normal-work approval flow)
+
+### Avoiding overlap (promotion paths)
+
+No two files share a responsibility on paper. Where the system can leak is in **moving facts to their long-term home** as work progresses:
+
+- **working → semantic.** When a working.md bullet describes work that has shipped, it's now a stable fact about the system — promote it to `semantic.md` and remove it from `working.md`. The Claude Code stop-hook prompts for this on every response.
+- **vision-planned → semantic.** When a planned capability ships, move it OUT of `vision.md`'s planned list and INTO `semantic.md`. Done at PR merge time.
+- **context → DECISIONS.** If an architectural choice surfaces mid-task, don't let it die in `dev/[task]/context.md`. Promote it to a `DECISIONS.md` entry before archiving the task.
+- **assumption invalidated.** Append a supersession entry to `DECISIONS.md` *first*, then update the assumption in `vision.md`. Order matters — otherwise you lose the audit trail.
+
+If you ever feel two files are saying the same thing, the fix is almost always "promote to the longer-lived home and delete from the shorter-lived one," not "rewrite the contracts."
 
 ---
 
