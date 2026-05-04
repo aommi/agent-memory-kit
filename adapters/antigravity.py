@@ -31,7 +31,12 @@ def _banner_md(content: str) -> str:
 
 
 def referenced_memory_files() -> list[str]:
-    """Return the set of .md files this adapter's Memory Discipline references."""
+    """Return the set of .md files this adapter's Memory Discipline references.
+
+    Note: dev/[task]/context.md is intentionally omitted — Antigravity's
+    workflow model handles task context through its own .agents/workflows/
+    system rather than the shared memory-kit task files.
+    """
     return [
         "memory/semantic.md",
         "memory/working.md",

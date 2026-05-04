@@ -447,6 +447,29 @@ def _run_check(project_root: Path, config: dict, enabled_agents: list[str]) -> i
                 print(diff)
                 print()
 
+    # ── Approval mode config validation ────────────────────────────────
+    from adapters.utils import validate_approval_mode
+
+    referenced_files = set()
+    for name in enabled_agents:
+        adapter_name = name.replace("-", "_")
+        try:
+            mod = importlib.import_module(f"adapters.{adapter_name}")
+        except ImportError:
+            continue
+        if hasattr(mod, "referenced_memory_files"):
+            referenced_files.update(mod.referenced_memory_files())
+
+    if referenced_files:
+        import sys as _sys
+        approval_msgs = validate_approval_mode(config, referenced_files)
+        for msg in approval_msgs:
+            if msg.startswith("DRIFT"):
+                drift_count += 1
+                print(msg)
+            elif msg.startswith("INFO"):
+                print(msg, file=_sys.stderr)
+
     if drift_count:
         print(f"\n{drift_count} file(s) have drifted. Run `generate.py all` to regenerate.")
     else:

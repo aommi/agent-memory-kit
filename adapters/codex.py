@@ -52,12 +52,6 @@ If reasoning becomes uncertain or inconsistent with prior context, re-read `memo
 
 {memory_discipline}
 
-**DECISIONS.md vs. Assumptions distinction:**
-- `DECISIONS.md` = immutable log — "we chose X on date Y because Z" — never edited, only superseded by appending
-- `{arch_file}` Assumptions = live load-bearing premises — mutable; when invalidated, append a supersession to `DECISIONS.md` first, then update the assumption
-
-**On PR merge:** check `{arch_file}` — move shipped capabilities to `memory/semantic.md` and remove them from the Vision section; append a supersession to `DECISIONS.md` then update or remove any invalidated Assumption.
-
 ---
 
 ## Architecture
