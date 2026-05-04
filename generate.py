@@ -277,15 +277,16 @@ def load_config(project_root: Path) -> dict:
 def get_enabled_agents(config: dict, force_all: bool = False) -> list[str]:
     """Return the list of agents to generate.
 
-    If force_all is True, returns every agent in ALL_ORDER.
-    Otherwise reads the ``agents`` section from project.yaml and returns
-    only those with ``enabled: true``.  Agents missing from the config
-    default to **enabled** so that adding a new adapter does not silently
-    disappear for existing projects.
-    """
-    if force_all:
-        return list(ALL_ORDER)
+    If force_all is True, bypasses re-run safety but still respects
+    ``enabled: false`` in project.yaml.  --force generates already-enabled
+    agents that were skipped by re-run safety; it does NOT generate
+    disabled agents.
 
+    Without --force, reads the ``agents`` section from project.yaml and
+    returns only those with ``enabled: true``.  Agents missing from the
+    config default to **enabled** so that adding a new adapter does not
+    silently disappear for existing projects.
+    """
     agents_config = config.get("agents", {})
     if not agents_config:
         # No agents section at all → backward-compat: generate everything
