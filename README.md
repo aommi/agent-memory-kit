@@ -107,7 +107,7 @@ This generates configs for **only the agents you enabled** in `project.yaml`:
 | Gemini CLI | `GEMINI.md` + `.gemini/context.md` |
 | Antigravity | `.agents/rules/` + `.agents/workflows/` |
 
-To generate **all** agents regardless of config:
+To regenerate enabled agents that were skipped by re-run safety (does NOT generate disabled agents):
 
 ```bash
 python .agent/memory-kit/generate.py all --force

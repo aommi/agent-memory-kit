@@ -21,8 +21,9 @@ Where <agent> is one of:
     - init         : Scaffold .agent/project.yaml and memory/ files for a new project
 
 FLAGS (valid only with 'all'):
-    --force        When used with 'all', generate ALL agents regardless of config
-                   or previous generation state.
+    --force        Regenerate already-enabled agents that were skipped by
+                   re-run safety. Respects agents.*.enabled in project.yaml
+                   (does NOT generate disabled agents).
     --check        Compare generated files against expected output. Exit non-zero
                    on drift. Mutually exclusive with --force.
 
@@ -493,7 +494,7 @@ def main():
         if not enabled_agents:
             print(
                 "No agents enabled in .agent/project.yaml.\n"
-                "Enable some agents or run with --force to generate all."
+                "Enable some agents or run with --force to regenerate already-enabled agents that were skipped by re-run safety."
             )
             sys.exit(0)
 
