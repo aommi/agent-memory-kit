@@ -24,8 +24,7 @@ This kit gives you:
 │  LAYER 1: MEMORY-KIT (generic, copyable)                    │
 │                                                             │
 │  - templates/preprompt.txt    (per-turn instructions)       │
-│  - templates/stop.sh          (post-response reminder)      │
-│  - templates/memory_protocol.md (memory system rules)       │
+│  - templates/antigravity/     (Antigravity rule templates)  │
 │  - adapters/                   (one per agent)              │
 │  - generate.py                 (CLI entry point)            │
 └─────────────────────────────────────────────────────────────┘
@@ -108,7 +107,7 @@ This generates configs for **only the agents you enabled** in `project.yaml`:
 | Gemini CLI | `GEMINI.md` + `.gemini/context.md` |
 | Antigravity | `.agents/rules/` + `.agents/workflows/` |
 
-To generate **all** agents regardless of config:
+To regenerate enabled agents that were skipped by re-run safety (does NOT generate disabled agents):
 
 ```bash
 python .agent/memory-kit/generate.py all --force
@@ -166,13 +165,13 @@ cp memory/working.example.md memory/working.md
 **How it works:**
 - On session start, Claude Code reads `CLAUDE.md` automatically
 - Before every user message, `hooks/preprompt.txt` is injected → agent reads `memory/working.md`
-- After every response, `hooks/stop.sh` runs → agent inspects diff, proposes memory updates
+- After every response, `hooks/stop.sh` runs → agent inspects diff and applies memory updates per the project's approval_mode (auto = write directly, review = propose first)
 
 **Your workflow:**
 1. Open terminal, run `claude`
 2. Agent reads `semantic.md` + `working.md` automatically
 3. Work normally. After code changes, the stop hook fires
-4. Agent asks about intent if unclear, then proposes `semantic.md` / `DECISIONS.md` updates
+4. Agent asks about intent if unclear, then updates `semantic.md` / `DECISIONS.md` per approval_mode
 5. Approve or correct. `working.md` updates automatically
 
 #### Memory capture levels (`memory.capture_at`)
@@ -217,7 +216,7 @@ GitHub merge styles:
 **If something breaks:**
 - Hooks not firing? Check `.claude/settings.json` exists and `hooks/stop.sh` is executable (`chmod +x`)
 - Agent forgetting context? Say "re-read semantic.md"
-- Agent skipping hook output in long sessions? Say "check the diff and propose memory updates"
+- Agent skipping hook output in long sessions? Say "check the diff and update memory"
 
 **Regenerating CLAUDE.md safely:**
 
@@ -250,7 +249,7 @@ The project header (title + description) is written once above the sentinel on f
 1. Open Hermes in the repo
 2. Agent reads `AGENTS.md` at session start
 3. Manually prompt before each task: "Read memory/working.md before answering"
-4. After significant changes, prompt: "Inspect the diff and propose memory updates"
+4. After significant changes, prompt: "Inspect the diff and update memory per approval_mode"
 
 **Synergy with Hermes native memory:**
 ```bash
@@ -311,22 +310,19 @@ Mental model: **vision = future + axioms; DECISIONS = immutable past; semantic =
 | `DECISIONS.md` | Append-only history of *why* we chose X on date Y. Never edited; to reverse, append a new entry that supersedes the old one. | When a real architectural choice is made. | Forever (audit trail). |
 | `dev/[task]/context.md` | Per-task scratchpad of *confirmed* facts/assumptions for one specific piece of work (e.g. one ticket). | Continuously while the task is active; archived when the task ends. | Lives with the task. |
 
-Operational details (who can write, size limits):
+### Operational details
 
-| File | Size limit | Who writes | Approval? |
+| File | Size limit | Who writes | Approval mode |
 |---|---|---|---|
-| `memory/semantic.md` | ≤500 lines | Agent (proposed) | **Yes** |
-| `memory/working.md` | ≤300 lines | Agent (auto) | No |
-| `DECISIONS.md` | No limit | Agent (proposed) | **Yes** |
-| `dev/[task]/plan.md` | No limit | Agent | No |
-| `dev/[task]/context.md` | No limit | Agent | No |
-| `dev/[task]/tasks.md` | No limit | Agent | No |
+| `vision.md` | No limit | Human / agent on merge | Merge-only (separate from `approval_mode`) |
+| `memory/semantic.md` | ≤500 lines | Agent | Configurable (default: review) |
+| `memory/working.md` | ≤300 lines | Agent | auto |
+| `DECISIONS.md` | No limit | Agent | Configurable (default: review) |
+| `dev/[task]/plan.md` | No limit | Agent | auto |
+| `dev/[task]/context.md` | No limit | Agent | auto |
+| `dev/[task]/tasks.md` | No limit | Agent | auto |
 
-**Approval flow:**
-- `semantic.md` and `DECISIONS.md` require your approval before writing
-- `working.md` updates freely
-- `dev/[task]/` files update freely
-- `vision.md` is merge-only (not part of normal-work approval flow)
+**Approval mode (configurable):** `memory.approval_mode` in `project.yaml` controls whether files are written directly (`auto`) or proposed for human approval (`review`). Default for new projects is `auto` for all files. Projects without `approval_mode` set fall back to `review` for `semantic.md` / `DECISIONS.md` (preserves pre-v3 behavior). `vision.md` is not part of the approval-mode schema — it has its own merge-only contract.
 
 ### Avoiding overlap (promotion paths)
 
@@ -358,7 +354,7 @@ To resume later:
 
 ## Weekly Maintenance (10 minutes)
 
-1. **Skim `semantic.md`** — anything stale? Tell the agent to propose a correction
+1. **Skim `semantic.md`** — anything stale? Tell the agent to correct it (or propose a correction if semantic.md is in review mode)
 2. **Check `DECISIONS.md`** — reversed decisions should have "Supersedes" entries
 3. **Check `dev/`** — ship tasks to `dev/archive/`
 4. **Check agent entry-point files** — delete dead rules (they train the agent to ignore live ones)
@@ -386,8 +382,8 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
 |---|---|---|
 | Agent re-explains known context | `semantic.md` not loaded or stale | Check entry-point file references it; say "re-read semantic.md" |
 | Answers feel off mid-session | Context drift | Say "re-read semantic.md and try again" |
-| `semantic.md` > 500 lines | Bloat | "Compact semantic.md — keep only high-signal entries, propose for approval" |
-| Agent stops proposing updates | Context pressure suppressing hook | "Inspect diff since last memory check and propose updates" |
+| `semantic.md` > 500 lines | Bloat | "Compact semantic.md — keep only high-signal entries" |
+| Agent stops updating memory | Context pressure suppressing hook | "Inspect diff since last memory check and update memory" |
 | Agent asks same question across sessions | Assumptions not logged | Check `dev/[task]/context.md` Assumptions section |
 | Claude Code hooks not firing | `settings.json` missing or `stop.sh` not executable | `chmod +x hooks/stop.sh`; verify `.claude/settings.json` |
 | Stop hook: `No such file or directory` | Hook paths are stale (absolute or relative) | Re-run `generate.py claude-code` — hook commands now use `$CLAUDE_PROJECT_DIR` which Claude Code resolves correctly regardless of cwd |
@@ -408,8 +404,8 @@ Do not over-engineer this. For 1–5 repos, copy-paste is faster than any automa
     generate.py             # Standalone generator for any repo
     templates/
       preprompt.txt         # Per-turn instructions (generic)
-      stop.sh               # Post-response diff reminder (generic)
-      memory_protocol.md    # Memory system rules (generic)
+      antigravity/          # Antigravity rule + workflow templates
+      ARCHITECTURE_EXAMPLE.md  # Reference for vision.md content
     adapters/
       claude_code.py        # Parameterized Claude Code adapter
       hermes.py             # Parameterized Hermes adapter

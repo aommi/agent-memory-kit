@@ -21,13 +21,21 @@ Where <agent> is one of:
     - init         : Scaffold .agent/project.yaml and memory/ files for a new project
 
 FLAGS (valid only with 'all'):
-    --force        When used with 'all', generate ALL agents regardless of config
-                   or previous generation state.
+    --force        Regenerate already-enabled agents that were skipped by
+                   re-run safety. Respects agents.*.enabled in project.yaml
+                   (does NOT generate disabled agents).
     --check        Compare generated files against expected output. Exit non-zero
                    on drift. Mutually exclusive with --force.
 
 NOTE: codex and hermes both write AGENTS.md. The hermes version is a superset
 (adds agentskills.io note). If you use both agents, run `hermes` or `all`.
+
+ADAPTER CONTRACT:
+    Each adapter module must export:
+      - generate(project_root, config) -> str    # writes agent files, returns status
+      - check(project_root, config) -> list[str] # returns drift diffs (empty = clean)
+      - referenced_memory_files() -> list[str]   # .md files the adapter's Memory
+                                                  #   Discipline section references
 
 RE-RUN SAFETY:
     Running `generate.py all` multiple times is safe. Already-generated agents
@@ -200,6 +208,10 @@ def cmd_init(project_root: Path) -> None:
                 "working": "memory/working.md",
                 "decisions": "DECISIONS.md",
             },
+            "approval_mode": {
+                "default": "auto",
+                "review": [],
+            },
             "task_directory": "dev/[task]/",
         },
     }
@@ -266,15 +278,16 @@ def load_config(project_root: Path) -> dict:
 def get_enabled_agents(config: dict, force_all: bool = False) -> list[str]:
     """Return the list of agents to generate.
 
-    If force_all is True, returns every agent in ALL_ORDER.
-    Otherwise reads the ``agents`` section from project.yaml and returns
-    only those with ``enabled: true``.  Agents missing from the config
-    default to **enabled** so that adding a new adapter does not silently
-    disappear for existing projects.
-    """
-    if force_all:
-        return list(ALL_ORDER)
+    If force_all is True, bypasses re-run safety but still respects
+    ``enabled: false`` in project.yaml.  --force generates already-enabled
+    agents that were skipped by re-run safety; it does NOT generate
+    disabled agents.
 
+    Without --force, reads the ``agents`` section from project.yaml and
+    returns only those with ``enabled: true``.  Agents missing from the
+    config default to **enabled** so that adding a new adapter does not
+    silently disappear for existing projects.
+    """
     agents_config = config.get("agents", {})
     if not agents_config:
         # No agents section at all → backward-compat: generate everything
@@ -436,6 +449,29 @@ def _run_check(project_root: Path, config: dict, enabled_agents: list[str]) -> i
                 print(diff)
                 print()
 
+    # ── Approval mode config validation ────────────────────────────────
+    from adapters.utils import validate_approval_mode
+
+    referenced_files = set()
+    for name in enabled_agents:
+        adapter_name = name.replace("-", "_")
+        try:
+            mod = importlib.import_module(f"adapters.{adapter_name}")
+        except ImportError:
+            continue
+        if hasattr(mod, "referenced_memory_files"):
+            referenced_files.update(mod.referenced_memory_files())
+
+    if referenced_files:
+        import sys as _sys
+        approval_msgs = validate_approval_mode(config, referenced_files)
+        for msg in approval_msgs:
+            if msg.startswith("DRIFT"):
+                drift_count += 1
+                print(msg)
+            elif msg.startswith("INFO"):
+                print(msg, file=_sys.stderr)
+
     if drift_count:
         print(f"\n{drift_count} file(s) have drifted. Run `generate.py all` to regenerate.")
     else:
@@ -458,7 +494,7 @@ def main():
         if not enabled_agents:
             print(
                 "No agents enabled in .agent/project.yaml.\n"
-                "Enable some agents or run with --force to generate all."
+                "Set enabled: true for at least one agent in the agents section."
             )
             sys.exit(0)
 
@@ -469,7 +505,7 @@ def main():
         _bootstrap_working_md(project_root)
 
         state = load_state(project_root)
-        mode = "ALL agents (--force)" if force_all else "enabled agents only"
+        mode = "enabled agents (--force)" if force_all else "enabled agents only"
         print(f"Checking configurations for {mode}: {', '.join(enabled_agents)}\n")
 
         generated_any = False
