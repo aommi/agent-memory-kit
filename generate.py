@@ -29,6 +29,13 @@ FLAGS (valid only with 'all'):
 NOTE: codex and hermes both write AGENTS.md. The hermes version is a superset
 (adds agentskills.io note). If you use both agents, run `hermes` or `all`.
 
+ADAPTER CONTRACT:
+    Each adapter module must export:
+      - generate(project_root, config) -> str    # writes agent files, returns status
+      - check(project_root, config) -> list[str] # returns drift diffs (empty = clean)
+      - referenced_memory_files() -> list[str]   # .md files the adapter's Memory
+                                                  #   Discipline section references
+
 RE-RUN SAFETY:
     Running `generate.py all` multiple times is safe. Already-generated agents
     are skipped unless their output files are missing or --force is used.
@@ -199,6 +206,10 @@ def cmd_init(project_root: Path) -> None:
                 "semantic": "memory/semantic.md",
                 "working": "memory/working.md",
                 "decisions": "DECISIONS.md",
+            },
+            "approval_mode": {
+                "default": "auto",
+                "review": [],
             },
             "task_directory": "dev/[task]/",
         },
