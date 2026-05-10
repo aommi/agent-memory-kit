@@ -1,8 +1,6 @@
 # Agent Memory Kit
 
-**Memory that survives a decade. No database. No runtime. Markdown in git.**
-
-A file-based memory system for developers who use AI coding agents. One `generate.py init` gives every agent in your toolbox — Claude Code, Hermes, Codex, Cursor, Gemini CLI, Windsurf, OpenClaw, Antigravity — shared memory that persists when you switch tools.
+**Give your agent a memory for your repo.** Store durable project context so AI coding agents remember how your codebase works. Markdown in git. No database. No runtime.
 
 ---
 
