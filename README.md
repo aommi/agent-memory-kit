@@ -128,6 +128,10 @@ Manually prompt before tasks: "Read memory/working.md before answering." After s
 
 The kit is vendored into each repo — no global install, no version drift. To update:
 
+**Ask your agent:** "Update .agent/memory-kit from the latest agent-memory-kit release." The agent handles the copy, regeneration, and drift check.
+
+**Or do it manually:**
+
 ```bash
 cd your-project
 cp -r ../agent-memory-kit/{generate.py,adapters,templates,eval} .agent/memory-kit/
