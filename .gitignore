@@ -4,5 +4,6 @@ __pycache__/
 .DS_Store
 *.egg-info/
 .agent/.last_checked_commit
+.agent/.generated_state.json
+.agent/eval/
 docs/planning/
-future-extensions.md
