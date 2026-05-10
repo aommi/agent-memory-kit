@@ -114,6 +114,10 @@ def validate(jsonl_path: Path) -> dict:
                 issues.append(f"line {lineno}: missing fields {missing}")
                 continue
 
+            if not isinstance(cap["buckets"], list):
+                issues.append(f"line {lineno}: buckets is not a list (got {type(cap['buckets']).__name__})")
+                continue
+
             unknown = [b for b in cap["buckets"] if b not in KNOWN_BUCKETS]
             if unknown:
                 issues.append(f"line {lineno}: unknown bucket(s) {unknown}")
@@ -172,10 +176,20 @@ def compare(
     )
     memory_changed = current_hash != cap.get("memory_hash", "")
 
-    baseline_set = set(baseline_buckets)
-    replayed_set = set(replayed_buckets)
-    skipped = baseline_set - replayed_set
-    new_steps = replayed_set - baseline_set
+    from collections import Counter
+
+    baseline_counts = Counter(baseline_buckets)
+    replayed_counts = Counter(replayed_buckets)
+
+    skipped: list[str] = []
+    new_steps: list[str] = []
+    all_buckets = set(baseline_counts) | set(replayed_counts)
+    for b in sorted(all_buckets):
+        diff = baseline_counts[b] - replayed_counts[b]
+        if diff > 0:
+            skipped.extend([b] * diff)
+        elif diff < 0:
+            new_steps.extend([b] * (-diff))
 
     return {
         "line": line_num,

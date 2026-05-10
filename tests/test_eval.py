@@ -101,7 +101,36 @@ def test_validate_missing_fields():
     assert len(result["issues"]) >= 1
 
 
+def test_validate_null_buckets():
+    """buckets: null should be caught, not crash."""
+    with tempfile.NamedTemporaryFile(suffix=".jsonl", mode="w", delete=False) as f:
+        _write_jsonl(Path(f.name), [
+            {"memory_hash": "abc", "prompt": "test",
+             "buckets": None,
+             "timestamp": "2026-05-09T12:00:00Z", "harness": "hermes"},
+        ])
+        f.flush()
+        result = validate(Path(f.name))
+    assert result["valid"] == 0
+    assert any("not a list" in i for i in result["issues"])
+
+
+def test_validate_buckets_is_string():
+    """buckets as a string should be flagged as not-a-list."""
+    with tempfile.NamedTemporaryFile(suffix=".jsonl", mode="w", delete=False) as f:
+        _write_jsonl(Path(f.name), [
+            {"memory_hash": "abc", "prompt": "test",
+             "buckets": "shell-exec",
+             "timestamp": "2026-05-09T12:00:00Z", "harness": "hermes"},
+        ])
+        f.flush()
+        result = validate(Path(f.name))
+    assert result["valid"] == 0
+    assert any("not a list" in i for i in result["issues"])
+
+
 def test_validate_unknown_bucket():
+    """Unknown buckets get a warning but the capture is still valid."""
     with tempfile.NamedTemporaryFile(suffix=".jsonl", mode="w", delete=False) as f:
         _write_jsonl(Path(f.name), [
             {"memory_hash": "abc", "prompt": "test",
@@ -174,11 +203,28 @@ def test_compare_redundant_avoided():
         f.flush()
         result = compare(
             Path(f.name), 1,
-            ["filesystem-read", "code-edit"],  # skipped shell-exec + web-fetch
+            ["filesystem-read", "code-edit"],
         )
     assert result["redundant_avoided"]["steps_skipped_count"] == 2
     assert "shell-exec" in result["redundant_avoided"]["steps_skipped"]
     assert "web-fetch" in result["redundant_avoided"]["steps_skipped"]
+
+
+def test_compare_repeated_buckets():
+    """Repeated buckets in baseline missing from replay should be counted."""
+    with tempfile.NamedTemporaryFile(suffix=".jsonl", mode="w", delete=False) as f:
+        _write_jsonl(Path(f.name), [
+            {"memory_hash": "abc123", "prompt": "test",
+             "buckets": ["filesystem-read", "filesystem-read", "code-edit"],
+             "timestamp": "2026-05-09T12:00:00Z", "harness": "hermes"},
+        ])
+        f.flush()
+        result = compare(
+            Path(f.name), 1,
+            ["filesystem-read", "code-edit"],
+        )
+    assert result["redundant_avoided"]["steps_skipped_count"] == 1
+    assert result["redundant_avoided"]["steps_skipped"] == ["filesystem-read"]
 
 
 def test_compare_line_out_of_range():
