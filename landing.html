@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Memory Kit — Memory that survives a decade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;510;590&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #08090a;
+      --bg-panel: #0f1011;
+      --bg-surface: #191a1b;
+      --bg-elevated: #28282c;
+      --text-primary: #f7f8f8;
+      --text-secondary: #d0d6e0;
+      --text-tertiary: #8a8f98;
+      --text-quaternary: #62666d;
+      --accent: #7170ff;
+      --accent-bg: #5e6ad2;
+      --accent-hover: #828fff;
+      --border-standard: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.05);
+      --success: #27a644;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-secondary);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.50;
+      font-feature-settings: 'cv01', 'ss03';
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* Navigation */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,9,10,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    nav .logo { font-weight: 590; font-size: 15px; color: var(--text-primary); letter-spacing: -0.165px; }
+    nav .logo span { color: var(--accent); }
+    nav a {
+      color: var(--text-tertiary); text-decoration: none; font-size: 14px; font-weight: 510;
+      transition: color 0.15s;
+    }
+    nav a:hover { color: var(--text-primary); }
+
+    /* Hero */
+    .hero {
+      padding: 120px 0 80px; text-align: center;
+    }
+    .hero h1 {
+      font-size: 56px; font-weight: 510; line-height: 1.00; letter-spacing: -1.232px;
+      color: var(--text-primary); margin-bottom: 24px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero .subtitle {
+      font-size: 20px; font-weight: 400; line-height: 1.60; letter-spacing: -0.24px;
+      color: var(--text-tertiary); max-width: 640px; margin: 0 auto 40px;
+    }
+    .hero .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 510;
+      text-decoration: none; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent-bg); color: #fff; border: none;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.02); color: var(--text-secondary);
+      border: 1px solid var(--border-standard);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+    .btn-code {
+      background: var(--bg-surface); color: var(--text-secondary);
+      border: 1px solid var(--border-standard);
+      font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;
+      padding: 10px 16px;
+    }
+    .btn-code:hover { border-color: var(--accent); }
+
+    /* Sections */
+    section { padding: 80px 0; }
+    section + section { border-top: 1px solid var(--border-subtle); }
+    .section-label {
+      font-size: 12px; font-weight: 510; color: var(--accent); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 32px; font-weight: 510; line-height: 1.13; letter-spacing: -0.704px;
+      color: var(--text-primary); margin-bottom: 20px;
+    }
+    h3 {
+      font-size: 20px; font-weight: 590; line-height: 1.33; letter-spacing: -0.24px;
+      color: var(--text-primary); margin-bottom: 8px;
+    }
+    p { color: var(--text-tertiary); margin-bottom: 16px; }
+    p strong { color: var(--text-secondary); font-weight: 510; }
+
+    /* Properties grid */
+    .props-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+    }
+    .prop-card {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border-standard);
+      border-radius: var(--radius-md); padding: 24px;
+    }
+    .prop-card .num {
+      font-size: 24px; font-weight: 590; color: var(--accent); margin-bottom: 8px;
+      letter-spacing: -0.288px;
+    }
+    .prop-card h3 { margin-bottom: 6px; }
+    .prop-card p { font-size: 14px; margin: 0; }
+
+    /* Code block */
+    .code-block {
+      background: var(--bg-surface); border: 1px solid var(--border-standard);
+      border-radius: var(--radius-md); padding: 20px 24px; overflow-x: auto;
+      margin: 24px 0;
+    }
+    .code-block pre {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 400; line-height: 1.70;
+      color: var(--text-secondary);
+    }
+    .code-block .c { color: var(--text-quaternary); }
+    .code-block .cmd { color: var(--accent); }
+
+    /* Agent grid */
+    .agent-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .agent-pill {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border-standard);
+      border-radius: 9999px; padding: 8px 16px; text-align: center;
+      font-size: 13px; font-weight: 510; color: var(--text-secondary);
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 0; border-top: 1px solid var(--border-subtle);
+      text-align: center; font-size: 13px; color: var(--text-quaternary);
+    }
+    footer a { color: var(--text-tertiary); text-decoration: none; }
+    footer a:hover { color: var(--text-primary); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 36px; letter-spacing: -0.792px; }
+      .hero .subtitle { font-size: 17px; }
+      .props-grid { grid-template-columns: 1fr; }
+      .agent-grid { grid-template-columns: repeat(2, 1fr); }
+      h2 { font-size: 24px; }
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 80px 0 60px; }
+      .hero h1 { font-size: 28px; letter-spacing: -0.616px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="logo"><span>◈</span> Agent Memory Kit</div>
+    <a href="https://github.com/aommi/agent-memory-kit">GitHub →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <h1>Memory that survives<br><span>a decade.</span></h1>
+    <p class="subtitle">
+      A file-based memory system for developers who use AI coding agents.
+      Markdown in git. No database. No runtime. One command gives every agent
+      in your toolbox shared memory that persists when you switch tools.
+    </p>
+    <div class="cta-group">
+      <a href="https://github.com/aommi/agent-memory-kit" class="btn btn-primary">View on GitHub</a>
+      <button class="btn btn-code" onclick="copyCmd()">git clone https://github.com/aommi/agent-memory-kit.git</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-label">The ethos</div>
+    <h2>Four load-bearing properties</h2>
+    <div class="props-grid">
+      <div class="prop-card">
+        <div class="num">1</div>
+        <h3>Markdown under git</h3>
+        <p>Every byte of memory is readable markdown. Audit with <code>cat</code>. Review in <code>git diff</code>. No binary indexes, no vector DBs, no opaque state.</p>
+      </div>
+      <div class="prop-card">
+        <div class="num">2</div>
+        <h3>No runtime</h3>
+        <p>Hooks fire and exit. No daemon, no server, no worker. The system disappears into the file tree between sessions.</p>
+      </div>
+      <div class="prop-card">
+        <div class="num">3</div>
+        <h3>Gated promotion</h3>
+        <p>Every fact in durable memory has a written <strong>Why accepted:</strong> rationale. The diff <em>is</em> the audit trail. No silent auto-graduation.</p>
+      </div>
+      <div class="prop-card">
+        <div class="num">4</div>
+        <h3>Local, no telemetry</h3>
+        <p>State about your project lives in your repo. State about <em>you</em> doesn't accumulate anywhere. Single-user, local-only.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-label">Quick start</div>
+    <h2>Five commands to working memory</h2>
+    <div class="code-block">
+      <pre><span class="cmd">git clone</span> https://github.com/aommi/agent-memory-kit.git
+<span class="cmd">cd</span> your-project
+<span class="cmd">cp -r</span> ../agent-memory-kit .agent/memory-kit
+<span class="cmd">python</span> .agent/memory-kit/generate.py init    <span class="c"># answer 5 prompts</span>
+<span class="cmd">python</span> .agent/memory-kit/generate.py all     <span class="c"># generates configs for your agents</span></pre>
+    </div>
+    <p style="text-align:center; font-size:14px; color: var(--text-quaternary);">
+      Creates <code>memory/semantic.md</code>, <code>memory/candidates.md</code>, <code>DECISIONS.md</code>,
+      <code>CLAUDE.md</code>, <code>AGENTS.md</code> — everything your agents need to remember.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-label">What the agent sees</div>
+    <h2>Self-documenting files</h2>
+    <p>The generated <code>CLAUDE.md</code> and <code>AGENTS.md</code> tell each agent exactly how to use memory — what to read, when to write, how to promote. No README required. The instructions are in the files the system generates.</p>
+    <div class="code-block">
+      <pre><span class="c">### Memory Discipline</span>
+
+<span class="c">- `memory/semantic.md` — distilled project knowledge</span>
+<span class="c">- `memory/working.md` — live task scratchpad</span>
+<span class="c">- `memory/candidates.md` — staged lessons awaiting promotion</span>
+
+<span class="c">**Stage → Graduate promotion:**</span>
+<span class="c">- Append claims to candidates.md with a Staged date and Sources</span>
+<span class="c">- Graduate: move to semantic.md with **Why accepted:** rationale</span>
+<span class="c">- Reject: move to candidates.rejected.md with **Why rejected:**</span></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-label">Supported agents</div>
+    <h2>One memory, eight agents</h2>
+    <div class="agent-grid">
+      <div class="agent-pill">Claude Code</div>
+      <div class="agent-pill">Hermes</div>
+      <div class="agent-pill">Codex</div>
+      <div class="agent-pill">Cursor</div>
+      <div class="agent-pill">Gemini CLI</div>
+      <div class="agent-pill">Windsurf</div>
+      <div class="agent-pill">OpenClaw</div>
+      <div class="agent-pill">Antigravity</div>
+    </div>
+    <p style="text-align:center; margin-top: 24px; font-size:14px; color: var(--text-quaternary);">
+      Switch tools mid-project. The memory doesn't reset.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container" style="text-align:center;">
+    <h2>Legibility compounds.<br>Infrastructure decays.</h2>
+    <p style="max-width:600px; margin: 0 auto 32px;">
+      A markdown file readable in a <code>git diff</code> five years from now
+      is a different kind of asset than an embedding index whose schema you no
+      longer remember.
+    </p>
+    <a href="https://github.com/aommi/agent-memory-kit" class="btn btn-primary" style="font-size:16px; padding:12px 28px;">View on GitHub</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/aommi/agent-memory-kit">Agent Memory Kit</a> ·
+      MIT License ·
+      Built for developers who switch AI coding agents
+    </p>
+  </div>
+</footer>
+
+<script>
+function copyCmd() {
+  navigator.clipboard.writeText('git clone https://github.com/aommi/agent-memory-kit.git');
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = orig, 1500);
+}
+</script>
+</body>
+</html>
