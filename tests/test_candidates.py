@@ -96,41 +96,47 @@ def test_validate_no_false_compat_for_candidates():
 # ── cmd_init scaffolding ──────────────────────────────────────────────────
 
 def test_init_creates_candidates_files():
+    """cmd_init() scaffolds candidates.md and candidates.rejected.md."""
+    import io
+    from unittest.mock import patch
+
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
 
-        # Minimal project config — skip the interactive prompts
-        config_path = root / ".agent" / "project.yaml"
-        config_path.parent.mkdir(parents=True)
-        config_path.write_text("project:\n  name: test\n  description: test\n")
-
-        # Scaffold memory files
-        memory_dir = root / "memory"
-        memory_dir.mkdir()
-        for fname, content in [
-            ("semantic.md", "# Semantic Memory\n\n"),
-            ("working.example.md", "# Working Memory\n\n"),
-            ("working.md", "# Working Memory\n\n"),
-        ]:
-            (memory_dir / fname).write_text(content)
-
-        # Verify candidates files were NOT created yet (we're testing the init paths)
-        # Actually, just test the file creation directly
-        candidates_path = memory_dir / "candidates.md"
-        rejected_path = memory_dir / "candidates.rejected.md"
-
-        candidates_path.write_text(
-            "# Candidate Lessons\n\n"
-            "Claims that have recurred across sessions.\n\n"
-        )
-        rejected_path.write_text(
-            "# Rejected Candidates\n\n"
-            "Claims that were staged and rejected.\n\n"
+        # Simulate interactive init with canned inputs.
+        # Order: project name, description, arch file, claude-code (y), codex (y),
+        # hermes (n), openclaw (n), cursor (n), windsurf (n), gemini-cli (n),
+        # antigravity (n), response (y), commit (n), merge (y)
+        canned = io.StringIO(
+            "test-project\n"
+            "test description\n"
+            "\n"     # arch file: default vision.md
+            "\n"     # claude-code: Y (default)
+            "\n"     # codex: Y (default)
+            "\n"     # hermes: N (default)
+            "\n"     # openclaw: N (default)
+            "\n"     # cursor: N (default)
+            "\n"     # windsurf: N (default)
+            "\n"     # gemini-cli: N (default)
+            "\n"     # antigravity: N (default)
+            "\n"     # response: Y (default)
+            "\n"     # commit: N (default)
+            "\n"     # merge: Y (default)
         )
 
-        assert candidates_path.exists()
-        assert rejected_path.exists()
+        with patch("sys.stdin", canned), patch("sys.stdout", io.StringIO()):
+            cmd_init(root)
+
+        candidates_path = root / "memory" / "candidates.md"
+        rejected_path = root / "memory" / "candidates.rejected.md"
+
+        assert candidates_path.exists(), "candidates.md not created by init"
+        assert rejected_path.exists(), "candidates.rejected.md not created by init"
+
         content = candidates_path.read_text()
         assert "Candidate Lessons" in content
+        assert "- Staged: YYYY-MM-DD" in content
+        assert "- Sources:" in content
+
         rejected_content = rejected_path.read_text()
         assert "Rejected Candidates" in rejected_content
