@@ -83,16 +83,16 @@ The agent now knows: what to write, where to write it, and why. No README requir
 
 ## Supported agents
 
-| Agent | Mechanism | Confidence |
-|---|---|---|
-| Claude Code | `CLAUDE.md` + hooks (`preprompt.txt`, `stop.sh`) | HIGH |
-| Hermes | `AGENTS.md` (read at session start) | MEDIUM |
-| Codex | `AGENTS.md` (read at session start) | LOW-MEDIUM |
-| Cursor | `.cursor/rules/memory.mdc` (auto-attach) | MEDIUM |
-| Gemini CLI | `GEMINI.md` + `.gemini/context.md` | MEDIUM |
-| Windsurf | `.windsurfrules` | MEDIUM |
-| OpenClaw | `.openclaw-system.md` | MEDIUM |
-| Antigravity | `.agents/rules/` + `.agents/workflows/` | HIGH |
+| Agent | Mechanism |
+|---|---|
+| Claude Code | `CLAUDE.md` + hooks (`preprompt.txt`, `stop.sh`) |
+| Hermes | `AGENTS.md` (read at session start) |
+| Codex | `AGENTS.md` (read at session start) |
+| Cursor | `.cursor/rules/memory.mdc` (auto-attach) |
+| Gemini CLI | `GEMINI.md` + `.gemini/context.md` |
+| Windsurf | `.windsurfrules` |
+| OpenClaw | `.openclaw-system.md` |
+| Antigravity | `.agents/rules/` + `.agents/workflows/` |
 
 ---
 
