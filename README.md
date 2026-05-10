@@ -2,6 +2,8 @@
 
 **Give your agent a memory for your repo.** Store durable project context so AI coding agents remember how your codebase works. Markdown in git. No database. No runtime.
 
+**Your agent manages it itself.** The memory files are plain markdown — no API, no SDK, no special tools. Your agent reads them at session start, writes to them after changes, and can even update the kit itself when new versions ship. It speaks your agent's language because it *is* your agent's language.
+
 ---
 
 ## The ethos
