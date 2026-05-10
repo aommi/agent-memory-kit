@@ -73,6 +73,7 @@ def test_discipline_includes_stage_graduate_flow():
     assert "memory/candidates.rejected.md" in output
     assert "**Why accepted:**" in output
     assert "**Why rejected:**" in output
+    assert "- Staged:" in output
 
 
 def test_discipline_includes_grep_dedup_instruction():

@@ -259,7 +259,7 @@ def build_memory_discipline(config: dict, arch_file: str) -> str:
 **On PR merge:** check `{arch_file}` — move shipped capabilities to `memory/semantic.md` and remove them from the Vision section; append a supersession to `DECISIONS.md` then update or remove any invalidated Assumption.
 
 **Stage → Graduate promotion (#11):**
-- `memory/candidates.md` — append-only staging queue. Each entry is a `###` heading claim with a `- Sources:` bullet list (commit hashes, session refs, or file:line pointers). Before appending, grep candidates.md for matching claims — if found, append a source bullet to the existing heading instead of creating a duplicate. One heading per claim.
+- `memory/candidates.md` — append-only staging queue. Each entry is a `###` heading claim with a `- Staged: YYYY-MM-DD` date and a `- Sources:` bullet list (commit hashes, session refs, or file:line pointers). Before appending, grep candidates.md for matching claims — if found, append a source bullet to the existing heading instead of creating a duplicate. One heading per claim.
 - `memory/semantic.md` — on promotion, move the entire heading block from candidates.md into semantic.md with a one-line `**Why accepted:**` rationale appended. The candidate entry disappears from candidates.md.
 - `memory/candidates.rejected.md` — on rejection, move the heading block here with a one-line `**Why rejected:**` reason. Preserves the churn history to prevent re-litigation.
 - All promotions and rejections are committed separately with `promote:` or `reject:` commit message prefixes. The diff *is* the audit trail."""
