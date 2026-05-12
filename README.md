@@ -142,6 +142,20 @@ python .agent/memory-kit/generate.py all
 
 For 1–5 repos, copy-paste is faster than any automation.
 
+## CI
+
+This repository runs a small CI gate on pull requests and pushes to `main`:
+
+```bash
+python3 -m pytest -q
+python3 generate.py all . --check
+```
+
+The second command checks that the kit repo's generated `AGENTS.md` is still
+reproducible from `generate.py`, `adapters/`, `templates/`, and
+`.agent/project.yaml`. If generated output drifts, update the source config or
+template first, then regenerate.
+
 ---
 
 ## What we explicitly don't build
