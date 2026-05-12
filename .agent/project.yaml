@@ -1,0 +1,41 @@
+project:
+  name: agent-memory-kit
+  description: a vendored, markdown-first project memory kit for coding agents
+architecture:
+  file: docs/planning/vision.md
+conventions:
+  - Keep agent-memory-kit repo-local and markdown-first; do not add daemons, databases, dashboards, MCP servers, or telemetry.
+  - Generated files must remain reproducible from generate.py, adapters, templates, and .agent/project.yaml.
+agents:
+  claude_code:
+    enabled: false
+  codex:
+    enabled: true
+  hermes:
+    enabled: true
+  openclaw:
+    enabled: false
+  cursor:
+    enabled: false
+  windsurf:
+    enabled: false
+  gemini_cli:
+    enabled: false
+  antigravity:
+    enabled: false
+memory:
+  semantic_max_lines: 500
+  working_max_lines: 300
+  capture_at:
+    - response
+    - merge
+  files:
+    semantic: memory/semantic.md
+    working: memory/working.md
+    decisions: DECISIONS.md
+    candidates: memory/candidates.md
+    candidates_rejected: memory/candidates.rejected.md
+  approval_mode:
+    default: auto
+    review: []
+  task_directory: dev/[task]/
