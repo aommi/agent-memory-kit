@@ -83,3 +83,14 @@ def test_check_without_generate_does_not_crash(project: Path, adapter_name: str)
     # Should return a list (possibly with drift), never raise
     diffs = mod.check(project, _minimal_config())
     assert isinstance(diffs, list)
+
+
+@pytest.mark.parametrize("adapter_name", ["codex", "hermes"])
+def test_non_claude_agents_do_not_claim_a_claude_hook(project: Path, adapter_name: str):
+    """Agents without the Claude hook must be told to read working state themselves."""
+    mod = importlib.import_module(f"adapters.{adapter_name}")
+    mod.generate(project, _minimal_config())
+
+    agents_md = (project / "AGENTS.md").read_text()
+    assert "preprompt hook handles reading" not in agents_md
+    assert "Read `memory/working.md` when beginning or resuming" in agents_md
